@@ -10,7 +10,9 @@ const router = express.Router();
 // @access  Private
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const standards = await Standard.find({ isActive: true })
+    const standards = await Standard.find({ 
+      isActive: true
+    })
       .populate('createdBy', 'name email')
       .sort({ name: 1 });
 
@@ -51,8 +53,11 @@ router.post('/', authMiddleware, [
 
     const { name, description, subjects } = req.body;
 
-    // Check if standard already exists
-    const existingStandard = await Standard.findOne({ name });
+    // Check if standard already exists for this teacher
+    const existingStandard = await Standard.findOne({ 
+      name,
+      createdBy: req.teacher._id
+    });
     if (existingStandard) {
       return res.status(400).json({ message: 'Standard already exists' });
     }
@@ -82,10 +87,13 @@ router.post('/', authMiddleware, [
 // @access  Private
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const standard = await Standard.findById(req.params.id)
+    const standard = await Standard.findOne({
+      _id: req.params.id,
+      isActive: true
+    })
       .populate('createdBy', 'name email');
 
-    if (!standard || !standard.isActive) {
+    if (!standard) {
       return res.status(404).json({ message: 'Standard not found' });
     }
 
@@ -122,7 +130,10 @@ router.put('/:id', authMiddleware, [
     }
 
     const { description, subjects } = req.body;
-    const standard = await Standard.findById(req.params.id);
+    const standard = await Standard.findOne({
+      _id: req.params.id,
+      createdBy: req.teacher._id
+    });
 
     if (!standard || !standard.isActive) {
       return res.status(404).json({ message: 'Standard not found' });
@@ -149,7 +160,10 @@ router.put('/:id', authMiddleware, [
 // @access  Private (Admin only)
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const standard = await Standard.findById(req.params.id);
+    const standard = await Standard.findOne({
+      _id: req.params.id,
+      createdBy: req.teacher._id
+    });
 
     if (!standard) {
       return res.status(404).json({ message: 'Standard not found' });

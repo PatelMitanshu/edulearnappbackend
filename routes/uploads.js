@@ -67,8 +67,11 @@ router.post('/', authMiddleware, uploadMiddleware.single('file'), [
 
     const { title, student, type, description, subject, tags } = req.body;
 
-    // Check if student exists
-    const studentExists = await Student.findById(student);
+    // Check if student exists and belongs to the authenticated teacher
+    const studentExists = await Student.findOne({
+      _id: student,
+      createdBy: req.teacher._id
+    });
     if (!studentExists || !studentExists.isActive) {
       return res.status(400).json({ message: 'Invalid student' });
     }
@@ -126,8 +129,21 @@ router.post('/', authMiddleware, uploadMiddleware.single('file'), [
 // @access  Private
 router.get('/student/:studentId', authMiddleware, async (req, res) => {
   try {
+    // First verify the student belongs to the authenticated teacher
+    const studentExists = await Student.findOne({
+      _id: req.params.studentId,
+      createdBy: req.teacher._id
+    });
+    if (!studentExists || !studentExists.isActive) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
     const { type, page = 1, limit = 10 } = req.query;
-    const query = { student: req.params.studentId, isActive: true };
+    const query = { 
+      student: req.params.studentId, 
+      isActive: true,
+      uploadedBy: req.teacher._id
+    };
 
     if (type) {
       query.type = type;
@@ -162,7 +178,10 @@ router.get('/student/:studentId', authMiddleware, async (req, res) => {
 // @access  Private
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const upload = await Upload.findById(req.params.id)
+    const upload = await Upload.findOne({
+      _id: req.params.id,
+      uploadedBy: req.teacher._id
+    })
       .populate('student', 'name standard')
       .populate('uploadedBy', 'name email');
 
@@ -209,7 +228,10 @@ router.put('/:id', authMiddleware, [
     }
 
     const { title, description, subject, tags } = req.body;
-    const upload = await Upload.findById(req.params.id);
+    const upload = await Upload.findOne({
+      _id: req.params.id,
+      uploadedBy: req.teacher._id
+    });
 
     if (!upload || !upload.isActive) {
       return res.status(404).json({ message: 'Upload not found' });
@@ -238,7 +260,10 @@ router.put('/:id', authMiddleware, [
 // @access  Private
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const upload = await Upload.findById(req.params.id);
+    const upload = await Upload.findOne({
+      _id: req.params.id,
+      uploadedBy: req.teacher._id
+    });
 
     if (!upload) {
       return res.status(404).json({ message: 'Upload not found' });

@@ -38,6 +38,10 @@ const teacherSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'Subject cannot exceed 50 characters']
   },
+  profilePicture: {
+    type: String,
+    default: null
+  },
   role: {
     type: String,
     enum: ['teacher', 'admin'],

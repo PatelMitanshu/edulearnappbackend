@@ -12,7 +12,10 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { standard, page = 1, limit = 10 } = req.query;
-    const query = { isActive: true };
+    const query = { 
+      isActive: true,
+      createdBy: req.teacher._id
+    };
 
     if (standard) {
       query.standard = standard;
@@ -49,7 +52,8 @@ router.get('/by-standard/:standardId', authMiddleware, async (req, res) => {
   try {
     const students = await Student.find({ 
       standard: req.params.standardId, 
-      isActive: true 
+      isActive: true,
+      createdBy: req.teacher._id
     })
       .populate('standard', 'name')
       .populate('createdBy', 'name email')
@@ -108,9 +112,13 @@ router.post('/', authMiddleware, [
       return res.status(400).json({ message: 'Invalid standard' });
     }
 
-    // Check if roll number is unique for the standard
+    // Check if roll number is unique for the standard and teacher
     if (rollNumber) {
-      const existingStudent = await Student.findOne({ rollNumber, standard });
+      const existingStudent = await Student.findOne({ 
+        rollNumber, 
+        standard,
+        createdBy: req.teacher._id
+      });
       if (existingStudent) {
         return res.status(400).json({ message: 'Roll number already exists for this standard' });
       }
@@ -143,7 +151,10 @@ router.post('/', authMiddleware, [
 // @access  Private
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id)
+    const student = await Student.findOne({
+      _id: req.params.id,
+      createdBy: req.teacher._id
+    })
       .populate('standard', 'name description subjects')
       .populate('createdBy', 'name email');
 
@@ -195,7 +206,10 @@ router.put('/:id', authMiddleware, [
     }
 
     const { name, rollNumber, dateOfBirth, parentContact } = req.body;
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne({
+      _id: req.params.id,
+      createdBy: req.teacher._id
+    });
 
     if (!student || !student.isActive) {
       return res.status(404).json({ message: 'Student not found' });
@@ -206,6 +220,7 @@ router.put('/:id', authMiddleware, [
       const existingStudent = await Student.findOne({ 
         rollNumber, 
         standard: student.standard,
+        createdBy: req.teacher._id,
         _id: { $ne: student._id }
       });
       if (existingStudent) {
@@ -241,7 +256,10 @@ router.put('/:id', authMiddleware, [
 // @access  Private
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne({
+      _id: req.params.id,
+      createdBy: req.teacher._id
+    });
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });

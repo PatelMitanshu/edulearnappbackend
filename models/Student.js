@@ -50,7 +50,7 @@ const studentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create compound index for unique roll number per standard
-studentSchema.index({ rollNumber: 1, standard: 1 }, { unique: true, sparse: true });
+// Create compound index for unique roll number per standard per teacher
+studentSchema.index({ rollNumber: 1, standard: 1, createdBy: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Student', studentSchema);

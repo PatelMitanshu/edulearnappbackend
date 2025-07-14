@@ -4,8 +4,7 @@ const standardSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Standard name is required'],
-    enum: ['6th Standard', '7th Standard', '8th Standard'],
-    unique: true
+    enum: ['6th Standard', '7th Standard', '8th Standard']
   },
   description: {
     type: String,
@@ -27,5 +26,8 @@ const standardSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Create compound index for unique standard name per teacher
+standardSchema.index({ name: 1, createdBy: 1 }, { unique: true });
 
 module.exports = mongoose.model('Standard', standardSchema);

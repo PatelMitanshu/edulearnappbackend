@@ -2,7 +2,143 @@ const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
 const bcrypt = require('bcryptjs');
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Upload profile picture
+router.post('/upload-profile-picture', auth, upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: 'teacher-profiles',
+          transformation: [
+            { width: 200, height: 200, crop: 'fill', gravity: 'face' },
+            { quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
+
+    // Update teacher profile with new picture URL
+    const teacher = await Teacher.findByIdAndUpdate(
+      req.user.id,
+      { profilePicture: result.secure_url },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'Teacher not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: {
+        profilePicture: result.secure_url,
+        teacher: {
+          id: teacher._id,
+          name: teacher.name,
+          email: teacher.email,
+          phone: teacher.phone || '',
+          school: teacher.school || '',
+          subject: teacher.subject || '',
+          profilePicture: teacher.profilePicture,
+          role: teacher.role,
+          isActive: teacher.isActive,
+          createdAt: teacher.createdAt,
+          updatedAt: teacher.updatedAt,
+          lastLogin: teacher.lastLogin
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Upload profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while uploading profile picture'
+    });
+  }
+});
+
+// Delete profile picture
+router.delete('/profile-picture', auth, async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.user.id);
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'Teacher not found'
+      });
+    }
+
+    // Delete from Cloudinary if exists
+    if (teacher.profilePicture) {
+      try {
+        // Extract public_id from URL
+        const publicId = teacher.profilePicture.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`teacher-profiles/${publicId}`);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary:', cloudinaryError);
+        // Continue anyway as we still want to remove from database
+      }
+    }
+
+    // Remove from database
+    teacher.profilePicture = null;
+    await teacher.save();
+
+    res.json({
+      success: true,
+      message: 'Profile picture removed successfully',
+      data: {
+        teacher: {
+          id: teacher._id,
+          name: teacher.name,
+          email: teacher.email,
+          phone: teacher.phone || '',
+          school: teacher.school || '',
+          subject: teacher.subject || '',
+          profilePicture: teacher.profilePicture,
+          role: teacher.role,
+          isActive: teacher.isActive,
+          createdAt: teacher.createdAt,
+          updatedAt: teacher.updatedAt,
+          lastLogin: teacher.lastLogin
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Delete profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting profile picture'
+    });
+  }
+});
 
 // Get teacher profile
 router.get('/profile', auth, async (req, res) => {
@@ -25,6 +161,7 @@ router.get('/profile', auth, async (req, res) => {
           phone: teacher.phone || '',
           school: teacher.school || '',
           subject: teacher.subject || '',
+          profilePicture: teacher.profilePicture,
           role: teacher.role,
           isActive: teacher.isActive,
           createdAt: teacher.createdAt,
@@ -139,6 +276,7 @@ router.put('/profile', auth, async (req, res) => {
           phone: updatedTeacher.phone || '',
           school: updatedTeacher.school || '',
           subject: updatedTeacher.subject || '',
+          profilePicture: updatedTeacher.profilePicture,
           role: updatedTeacher.role,
           isActive: updatedTeacher.isActive,
           createdAt: updatedTeacher.createdAt,
