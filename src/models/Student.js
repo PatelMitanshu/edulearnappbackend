@@ -1,0 +1,56 @@
+const mongoose = require('mongoose');
+
+const studentSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Student name is required'],
+    trim: true,
+    minlength: [2, 'Name must be at least 2 characters'],
+    maxlength: [50, 'Name cannot exceed 50 characters']
+  },
+  standard: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Standard',
+    required: [true, 'Standard is required']
+  },
+  rollNumber: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Roll number cannot exceed 20 characters']
+  },
+  dateOfBirth: {
+    type: Date
+  },
+  parentContact: {
+    phone: {
+      type: String,
+      match: [/^\d{10}$/, 'Please enter a valid 10-digit phone number']
+    },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    }
+  },
+  profilePicture: {
+    url: String,
+    publicId: String // For Cloudinary
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Teacher',
+    required: true
+  }
+}, {
+  timestamps: true
+});
+
+// Create compound index for unique roll number per standard
+studentSchema.index({ rollNumber: 1, standard: 1 }, { unique: true, sparse: true });
+
+module.exports = mongoose.model('Student', studentSchema);
