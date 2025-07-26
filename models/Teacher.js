@@ -54,6 +54,19 @@ const teacherSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   },
+  passwordResetOTP: {
+    type: String,
+    select: false
+  },
+  passwordResetOTPExpires: {
+    type: Date,
+    select: false
+  },
+  passwordResetOTPVerified: {
+    type: Boolean,
+    default: false,
+    select: false
+  },
   settings: {
     notifications: {
       email: { type: Boolean, default: true },
