@@ -83,6 +83,48 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Keep-alive self-ping to prevent Render server from idling
+  const http = require('http');
+  const https = require('https');
+  const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+  
+  function selfPing() {
+    const protocol = process.env.NODE_ENV === 'production' ? https : http;
+    const hostname = process.env.NODE_ENV === 'production' 
+      ? process.env.RENDER_EXTERNAL_URL || 'localhost'
+      : 'localhost';
+    
+    const options = {
+      hostname: hostname.replace(/^https?:\/\//, ''), // Remove protocol if present
+      port: process.env.NODE_ENV === 'production' ? 443 : PORT,
+      path: '/health',
+      method: 'GET',
+      timeout: 30000 // 30 second timeout
+    };
+    
+    const req = protocol.request(options, (res) => {
+      console.log(`Keep-alive ping successful: ${res.statusCode}`);
+    });
+    
+    req.on('error', (err) => {
+      console.log(`Keep-alive ping failed: ${err.message}`);
+    });
+    
+    req.on('timeout', () => {
+      console.log('Keep-alive ping timed out');
+      req.destroy();
+    });
+    
+    req.end();
+  }
+  
+  // Start the keep-alive pinging after 1 minute, then every 10 minutes
+  setTimeout(() => {
+    selfPing(); // Initial ping
+    setInterval(selfPing, KEEP_ALIVE_INTERVAL);
+    console.log('Keep-alive self-ping started - will ping every 10 minutes');
+  }, 60000); // Wait 1 minute before starting
 });
 
 module.exports = app;
