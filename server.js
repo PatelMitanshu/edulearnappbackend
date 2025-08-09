@@ -35,7 +35,14 @@ app.use(limiter);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://yourdomain.com'] 
-    : ['http://localhost:3000', 'http://localhost:8081'],
+    : [
+        'http://localhost:3000', 
+        'http://localhost:8081', 
+        'http://192.168.1.3:3000', 
+        'http://192.168.1.3:8081',
+        'http://10.0.2.2:3000', // Android emulator
+        'http://10.0.2.2:8081'   // Android emulator Metro
+      ],
   credentials: true,
 }));
 
@@ -58,6 +65,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/education
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/standards', require('./routes/standards'));
+app.use('/api/divisions', require('./routes/divisions'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/uploads', require('./routes/uploads'));
 

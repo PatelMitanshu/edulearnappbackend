@@ -13,6 +13,11 @@ const studentSchema = new mongoose.Schema({
     ref: 'Standard',
     required: [true, 'Standard is required']
   },
+  division: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Division',
+    required: [true, 'Division is required']
+  },
   rollNumber: {
     type: String,
     trim: true,
