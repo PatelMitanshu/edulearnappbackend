@@ -43,20 +43,44 @@ const uploadsController = {
 
       // Determine resource type for Cloudinary based on file mimetype
       let resourceType = 'auto';
+      let uploadOptions = {
+        resource_type: 'auto',
+        folder: `education-app/${type}s`,
+        public_id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+
       if (req.file.mimetype.startsWith('video/')) {
-        resourceType = 'video';
+        uploadOptions.resource_type = 'video';
       } else if (req.file.mimetype.startsWith('image/')) {
-        resourceType = 'image';
+        uploadOptions.resource_type = 'image';
       } else {
-        resourceType = 'raw'; // for documents
+        // For documents, use 'raw' type and specify format
+        uploadOptions.resource_type = 'raw';
+        
+        // Extract file extension from original filename for better format detection
+        const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
+        if (fileExtension) {
+          uploadOptions.format = fileExtension;
+        }
+        
+        // Set specific format based on mimetype for better Cloudinary handling
+        if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+          uploadOptions.format = 'xlsx';
+        } else if (req.file.mimetype === 'application/vnd.ms-excel') {
+          uploadOptions.format = 'xls';
+        } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          uploadOptions.format = 'docx';
+        } else if (req.file.mimetype === 'application/msword') {
+          uploadOptions.format = 'doc';
+        } else if (req.file.mimetype === 'application/pdf') {
+          uploadOptions.format = 'pdf';
+        } else if (req.file.mimetype === 'text/csv') {
+          uploadOptions.format = 'csv';
+        }
       }
 
       // Upload to Cloudinary
-      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, {
-        resource_type: resourceType,
-        folder: `education-app/${type}s`,
-        public_id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      });
+      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, uploadOptions);
 
       // Create upload record
       const upload = new Upload({

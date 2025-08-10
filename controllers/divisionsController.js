@@ -134,6 +134,7 @@ const createDivision = async (req, res) => {
     }
 
     const { name, description, standardId } = req.body;
+    console.log(`Creating division for standard ${standardId} by teacher ${req.teacher._id}`);
 
     // Verify the standard exists and belongs to this teacher
     const standard = await Standard.findOne({ 
@@ -152,19 +153,34 @@ const createDivision = async (req, res) => {
     // Check if division with same name already exists for this standard
     const existingDivision = await Division.findOne({
       name: name.toUpperCase(),
-      standard: standardId,
-      isActive: true
+      standard: standardId
     });
 
     if (existingDivision) {
-      return res.status(400).json({
-        success: false,
-        message: `Division "${name.toUpperCase()}" already exists for ${standard.name}`
-      });
+      if (existingDivision.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: `Division "${name.toUpperCase()}" already exists for ${standard.name}`
+        });
+      } else {
+        // Reactivate the soft-deleted division
+        existingDivision.isActive = true;
+        existingDivision.description = description;
+        existingDivision.fullName = `${standard.name}-${name.toUpperCase()}`;
+        await existingDivision.save();
+        await existingDivision.populate(['standard', 'createdBy']);
+
+        return res.status(201).json({
+          success: true,
+          message: 'Division reactivated successfully',
+          division: existingDivision
+        });
+      }
     }
 
     const division = new Division({
       name: name.toUpperCase(),
+      fullName: `${standard.name}-${name.toUpperCase()}`,
       description,
       standard: standardId,
       createdBy: req.teacher._id
@@ -339,20 +355,21 @@ const deleteDivision = async (req, res) => {
       isActive: true 
     });
 
-    if (studentCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete division "${division.name}" as it has ${studentCount} students. Please move or remove the students first.`
-      });
-    }
-
-    // Soft delete
+    // Soft delete the division and its students
     division.isActive = false;
     await division.save();
 
+    // Also soft delete all students in this division
+    if (studentCount > 0) {
+      await Student.updateMany(
+        { division: division._id, isActive: true },
+        { isActive: false }
+      );
+    }
+
     res.json({
       success: true,
-      message: 'Division deleted successfully'
+      message: `Division deleted successfully${studentCount > 0 ? ` (${studentCount} students also moved to inactive)` : ''}`
     });
   } catch (error) {
     console.error('Error deleting division:', error);

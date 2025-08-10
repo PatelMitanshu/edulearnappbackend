@@ -221,8 +221,12 @@ const studentsController = {
   // Update student
   updateStudent: async (req, res) => {
     try {
+      console.log('Update student request body:', req.body);
+      console.log('Update student params:', req.params);
+      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log('Validation errors:', errors.array());
         return res.status(400).json({ 
           message: 'Validation failed', 
           errors: errors.array() 

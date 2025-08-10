@@ -1,5 +1,7 @@
 const { validationResult } = require('express-validator');
 const Standard = require('../models/Standard');
+const Division = require('../models/Division');
+const Student = require('../models/Student');
 
 const standardsController = {
   // Get all standards
@@ -62,15 +64,28 @@ const standardsController = {
       // Check if standard already exists for this teacher (including inactive ones)
       const existingStandard = await Standard.findOne({ 
         name,
-        createdBy: req.teacher._id,
-        isActive: true
+        createdBy: req.teacher._id
       });
       
       if (existingStandard) {
-        return res.status(400).json({ 
-          message: `Standard "${name}" already exists. Please choose a different standard.`,
-          error: 'DUPLICATE_STANDARD'
-        });
+        if (existingStandard.isActive) {
+          return res.status(400).json({ 
+            message: `Standard "${name}" already exists. Please choose a different standard.`,
+            error: 'DUPLICATE_STANDARD'
+          });
+        } else {
+          // Reactivate the soft-deleted standard
+          existingStandard.isActive = true;
+          existingStandard.description = description;
+          existingStandard.subjects = subjects || [];
+          await existingStandard.save();
+          await existingStandard.populate('createdBy', 'name email');
+
+          return res.status(201).json({
+            message: 'Standard reactivated successfully',
+            standard: existingStandard
+          });
+        }
       }
 
       const standard = new Standard({
@@ -177,11 +192,39 @@ const standardsController = {
         return res.status(404).json({ message: 'Standard not found' });
       }
 
+      // Count divisions and students that will be affected
+      const divisionCount = await Division.countDocuments({
+        standard: standard._id,
+        isActive: true
+      });
+
+      const studentCount = await Student.countDocuments({
+        standard: standard._id,
+        isActive: true
+      });
+
+      // Soft delete the standard
       standard.isActive = false;
       await standard.save();
 
+      // Also soft delete all divisions in this standard
+      if (divisionCount > 0) {
+        await Division.updateMany(
+          { standard: standard._id, isActive: true },
+          { isActive: false }
+        );
+      }
+
+      // Also soft delete all students in this standard
+      if (studentCount > 0) {
+        await Student.updateMany(
+          { standard: standard._id, isActive: true },
+          { isActive: false }
+        );
+      }
+
       res.json({
-        message: 'Standard deleted successfully'
+        message: `Standard deleted successfully${divisionCount > 0 ? ` (${divisionCount} divisions and ${studentCount} students also moved to inactive)` : ''}`
       });
     } catch (error) {
       console.error('Delete standard error:', error);

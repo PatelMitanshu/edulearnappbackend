@@ -73,6 +73,7 @@ router.post('/', authMiddleware, [
 router.put('/:id', authMiddleware, [
   body('name')
     .optional()
+    .notEmpty()
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Name must be between 2 and 100 characters'),
@@ -95,13 +96,31 @@ router.put('/:id', authMiddleware, [
     .isLength({ max: 500 })
     .withMessage('Address cannot exceed 500 characters'),
   body('parentContact.phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please enter a valid phone number'),
+    .optional({ nullable: true })
+    .trim()
+    .custom((value) => {
+      if (value && value.length > 0) {
+        // Only validate if value is not empty
+        const phoneRegex = /^[+]?[1-9][\d\s\-\(\)]{7,15}$/;
+        if (!phoneRegex.test(value)) {
+          throw new Error('Please enter a valid phone number');
+        }
+      }
+      return true;
+    }),
   body('parentContact.email')
-    .optional()
-    .isEmail()
-    .withMessage('Please enter a valid email'),
+    .optional({ nullable: true })
+    .trim()
+    .custom((value) => {
+      if (value && value.length > 0) {
+        // Only validate if value is not empty
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          throw new Error('Please enter a valid email');
+        }
+      }
+      return true;
+    }),
   body('standardId')
     .optional()
     .isMongoId()

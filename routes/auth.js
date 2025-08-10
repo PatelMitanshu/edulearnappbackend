@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -103,6 +104,7 @@ const handleValidationErrors = (req, res, next) => {
 // Routes
 router.post('/register', authLimiter, registerValidation, handleValidationErrors, authController.register);
 router.post('/login', authLimiter, loginValidation, handleValidationErrors, authController.login);
+router.get('/me', authMiddleware, authController.getProfile);
 router.post('/forgot-password', forgotPasswordLimiter, forgotPasswordValidation, handleValidationErrors, authController.forgotPassword);
 router.post('/reset-password', resetPasswordValidation, handleValidationErrors, authController.resetPassword);
 router.post('/verify-otp', verifyOtpValidation, handleValidationErrors, authController.verifyOTP);
