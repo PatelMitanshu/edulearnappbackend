@@ -40,6 +40,8 @@ app.use(cors({
         'http://localhost:8081', 
         'http://192.168.1.3:3000', 
         'http://192.168.1.3:8081',
+        'http://192.168.137.1:3000',  // Hotspot IP
+        'http://192.168.137.1:8081',  // Hotspot IP Metro
         'http://10.0.2.2:3000', // Android emulator
         'http://10.0.2.2:8081'   // Android emulator Metro
       ],
@@ -133,8 +135,12 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
+  console.log(`Network access: http://192.168.1.3:${PORT}`);
+  console.log(`Hotspot access: http://192.168.137.1:${PORT}`);
 });
 
 module.exports = app;

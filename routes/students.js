@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const studentsController = require('../controllers/studentsController');
 const authMiddleware = require('../middleware/auth');
+const uploadMiddleware = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -130,6 +131,11 @@ router.put('/:id', authMiddleware, [
     .isMongoId()
     .withMessage('Valid division ID is required')
 ], studentsController.updateStudent);
+
+// @route   POST /api/students/:id/profile-picture
+// @desc    Upload profile picture for a student
+// @access  Private
+router.post('/:id/profile-picture', authMiddleware, uploadMiddleware.single('profilePicture'), studentsController.uploadProfilePicture);
 
 // @route   DELETE /api/students/:id
 // @desc    Delete a student (soft delete)

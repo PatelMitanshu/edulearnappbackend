@@ -2,6 +2,24 @@ const { validationResult } = require('express-validator');
 const Student = require('../models/Student');
 const Standard = require('../models/Standard');
 const Division = require('../models/Division');
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Helper function to upload to Cloudinary
+const uploadToCloudinary = (buffer, options) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    }).end(buffer);
+  });
+};
 
 const studentsController = {
   // Get all students
@@ -336,6 +354,68 @@ const studentsController = {
     } catch (error) {
       console.error('Delete student error:', error);
       res.status(500).json({ message: 'Server error while deleting student' });
+    }
+  },
+
+  // Upload profile picture for a student
+  uploadProfilePicture: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file uploaded' });
+      }
+
+      const studentId = req.params.id;
+      
+      // Verify the student exists and belongs to this teacher
+      const student = await Student.findOne({
+        _id: studentId,
+        createdBy: req.teacher._id,
+        isActive: true
+      }).populate('standard', 'name')
+        .populate('division', 'name')
+        .populate('createdBy', 'name email');
+
+      if (!student) {
+        return res.status(404).json({ message: 'Student not found' });
+      }
+
+      // Upload to Cloudinary
+      const uploadOptions = {
+        resource_type: 'image',
+        folder: 'education-app/profile-pictures',
+        public_id: `student-${studentId}-${Date.now()}`,
+        transformation: [
+          { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+          { quality: 'auto' }
+        ]
+      };
+
+      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, uploadOptions);
+
+      // Delete old profile picture from Cloudinary if it exists
+      if (student.profilePicture && student.profilePicture.publicId) {
+        try {
+          await cloudinary.uploader.destroy(student.profilePicture.publicId);
+        } catch (deleteError) {
+          console.warn('Failed to delete old profile picture:', deleteError);
+        }
+      }
+
+      // Update student with new profile picture
+      student.profilePicture = {
+        url: cloudinaryResult.secure_url,
+        publicId: cloudinaryResult.public_id
+      };
+
+      await student.save();
+
+      res.json({
+        message: 'Profile picture uploaded successfully',
+        student
+      });
+    } catch (error) {
+      console.error('Upload profile picture error:', error);
+      res.status(500).json({ message: 'Server error while uploading profile picture' });
     }
   }
 };
