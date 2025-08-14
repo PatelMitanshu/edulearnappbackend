@@ -68,6 +68,8 @@ app.use('/api/standards', require('./routes/standards'));
 app.use('/api/divisions', require('./routes/divisions'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/mcq', require('./routes/mcq'));
+app.use('/api/mcq-student', require('./routes/mcqStudent'));
 
 // Health Check
 app.get('/health', (req, res) => {
