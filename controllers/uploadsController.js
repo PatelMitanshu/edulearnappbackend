@@ -1,31 +1,11 @@
-const cloudinary = require('cloudinary').v2;
 const Upload = require('../models/Upload');
 const Student = require('../models/Student');
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-// Helper function to upload to Cloudinary
-const uploadToCloudinary = (buffer, options) => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(options, (error, result) => {
-      if (error) reject(error);
-      else resolve(result);
-    }).end(buffer);
-  });
-};
+const supabaseStorageService = require('../services/supabaseStorageService');
 
 const uploadsController = {
   // Upload a file for a student
   uploadFile: async (req, res) => {
     try {
-      console.log('Upload request body:', req.body);
-      console.log('Upload request file:', req.file);
-
       if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
       }
@@ -37,66 +17,61 @@ const uploadsController = {
         _id: student,
         createdBy: req.teacher._id
       });
+      
       if (!studentExists || !studentExists.isActive) {
         return res.status(400).json({ message: 'Invalid student' });
       }
 
-      // Determine resource type for Cloudinary based on file mimetype
-      let resourceType = 'auto';
-      let uploadOptions = {
-        resource_type: 'auto',
-        folder: `education-app/${type}s`,
-        public_id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      // Determine resource type
+      const classifyResourceType = (mimetype) => {
+        if (mimetype.startsWith('video/')) return 'video';
+        if (mimetype.startsWith('image/')) return 'image';
+        return 'document';
       };
 
-      if (req.file.mimetype.startsWith('video/')) {
-        uploadOptions.resource_type = 'video';
-      } else if (req.file.mimetype.startsWith('image/')) {
-        uploadOptions.resource_type = 'image';
-      } else {
-        // For documents, use 'raw' type and specify format
-        uploadOptions.resource_type = 'raw';
+      const resourceType = classifyResourceType(req.file.mimetype);
+      
+      // Upload to Supabase Storage
+      let uploadResult;
+      try {
+        uploadResult = await supabaseStorageService.uploadStudentFile(
+          req.file.buffer,
+          student,
+          req.teacher._id,
+          resourceType,
+          req.file.originalname,
+          req.file.mimetype
+        );
         
-        // Extract file extension from original filename for better format detection
-        const fileExtension = req.file.originalname.split('.').pop()?.toLowerCase();
-        if (fileExtension) {
-          uploadOptions.format = fileExtension;
-        }
-        
-        // Set specific format based on mimetype for better Cloudinary handling
-        if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-          uploadOptions.format = 'xlsx';
-        } else if (req.file.mimetype === 'application/vnd.ms-excel') {
-          uploadOptions.format = 'xls';
-        } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-          uploadOptions.format = 'docx';
-        } else if (req.file.mimetype === 'application/msword') {
-          uploadOptions.format = 'doc';
-        } else if (req.file.mimetype === 'application/pdf') {
-          uploadOptions.format = 'pdf';
-        } else if (req.file.mimetype === 'text/csv') {
-          uploadOptions.format = 'csv';
+      } catch (supabaseError) {
+        console.error('Supabase upload failed:', supabaseError);
+        throw new Error('File upload failed. Please try again.');
+      }
+
+      // Create upload record
+      let parsedTags = [];
+      if (tags && tags !== 'null' && tags.trim() !== '') {
+        try {
+          parsedTags = JSON.parse(tags);
+        } catch (e) {
+          parsedTags = [];
         }
       }
 
-      // Upload to Cloudinary
-      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, uploadOptions);
-
-      // Create upload record
       const upload = new Upload({
         title,
         description,
         student,
         type,
         file: {
-          url: cloudinaryResult.secure_url,
-          publicId: cloudinaryResult.public_id,
+          url: uploadResult.url,
+          publicId: uploadResult.path,
           originalName: req.file.originalname,
           size: req.file.size,
           mimeType: req.file.mimetype
         },
         subject,
-        tags: tags ? JSON.parse(tags) : [],
+        tags: parsedTags,
         uploadedBy: req.teacher._id
       });
 
@@ -110,6 +85,64 @@ const uploadsController = {
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ message: 'Server error while uploading file' });
+    }
+  },
+
+  // Create upload record (for Supabase uploads)
+  createUploadRecord: async (req, res) => {
+    try {
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      const { title, student, type, description, subject, tags, file } = req.body;
+      // Check if student exists and belongs to the authenticated teacher
+      const studentExists = await Student.findOne({
+        _id: student,
+        createdBy: req.teacher._id
+      });
+      if (!studentExists || !studentExists.isActive) {
+        return res.status(400).json({ message: 'Invalid student' });
+      }
+
+      // Parse tags
+      let parsedTags = [];
+      if (tags && Array.isArray(tags)) {
+        parsedTags = tags;
+      } else if (tags && typeof tags === 'string' && tags !== 'null' && tags.trim() !== '') {
+        try {
+          parsedTags = JSON.parse(tags);
+        } catch (e) {
+          console.error('Tags parsing error:', e);
+          parsedTags = [];
+        }
+      }
+
+      // Create upload record
+      const upload = new Upload({
+        title,
+        description,
+        student,
+        type,
+        file: {
+          url: file.url,
+          publicId: file.publicId,
+          originalName: file.originalName,
+          size: file.size,
+          mimeType: file.mimeType
+        },
+        subject,
+        tags: parsedTags,
+        uploadedBy: req.teacher._id
+      });
+
+      await upload.save();
+      await upload.populate(['student', 'uploadedBy'], 'name email');
+
+      res.status(201).json({
+        message: 'Upload record created successfully',
+        upload
+      });
+    } catch (error) {
+      console.error('Create upload record error:', error);
+      res.status(500).json({ message: 'Server error while creating upload record' });
     }
   },
 
@@ -227,12 +260,14 @@ const uploadsController = {
         return res.status(404).json({ message: 'Upload not found' });
       }
 
-      // Delete from Cloudinary
+      // Delete from Supabase Storage
       if (upload.file.publicId) {
-        await cloudinary.uploader.destroy(upload.file.publicId, {
-          resource_type: upload.type === 'video' ? 'video' : 
-                        upload.type === 'image' ? 'image' : 'raw'
-        });
+        try {
+          await supabaseStorageService.deleteFile(upload.file.publicId);
+        } catch (deleteError) {
+          console.error('Error deleting file from Supabase Storage:', deleteError);
+          // Continue with soft delete even if file deletion fails
+        }
       }
 
       // Soft delete

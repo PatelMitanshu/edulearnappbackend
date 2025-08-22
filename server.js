@@ -38,8 +38,10 @@ app.use(cors({
     : [
         'http://localhost:3000', 
         'http://localhost:8081', 
-        'http://192.168.1.3:3000', 
-        'http://192.168.1.3:8081',
+        'http://192.168.1.3:3000',   // Old WiFi IP
+        'http://192.168.1.3:8081',   // Old WiFi IP Metro
+        'http://192.168.1.4:3000',   // New WiFi IP
+        'http://192.168.1.4:8081',   // New WiFi IP Metro
         'http://192.168.137.1:3000',  // Hotspot IP
         'http://192.168.137.1:8081',  // Hotspot IP Metro
         'http://10.0.2.2:3000', // Android emulator
@@ -51,6 +53,9 @@ app.use(cors({
 // Body Parser
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files from uploads directory (for fallback document storage)
+app.use('/uploads', express.static('public/uploads'));
 
 // Logging
 app.use(morgan('combined'));
@@ -72,6 +77,7 @@ app.use('/api/students', require('./routes/students'));
 app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/mcq', require('./routes/mcq'));
 app.use('/api/mcq-student', require('./routes/mcqStudent'));
+app.use('/api/lesson-plans', require('./routes/lessonPlans'));
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -94,26 +100,21 @@ function selfPing() {
     console.log(`[Keep-Alive] Pinging ${url}/health at ${new Date().toISOString()}`);
     
     const request = protocol.get(`${url}/health`, (response) => {
-      console.log(`[Keep-Alive] Self-ping successful, status: ${response.statusCode}`);
     });
     
     request.on('error', (error) => {
-      console.log(`[Keep-Alive] Self-ping failed: ${error.message}`);
     });
     
     request.setTimeout(30000, () => {
-      console.log('[Keep-Alive] Self-ping timeout');
       request.destroy();
     });
     
   } catch (error) {
-    console.log(`[Keep-Alive] Error during self-ping: ${error.message}`);
   }
 }
 
 // Start the keep-alive mechanism only in production
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
-  console.log('[Keep-Alive] Starting keep-alive mechanism - pinging every 10 minutes');
   setInterval(selfPing, KEEP_ALIVE_INTERVAL);
   
   // Initial ping after 1 minute to ensure the server is ready
@@ -137,10 +138,6 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces
 app.listen(PORT, HOST, () => {
-  console.log(`Server running on ${HOST}:${PORT}`);
-  console.log(`Local access: http://localhost:${PORT}`);
-  console.log(`Network access: http://192.168.1.3:${PORT}`);
-  console.log(`Hotspot access: http://192.168.137.1:${PORT}`);
 });
 
 module.exports = app;

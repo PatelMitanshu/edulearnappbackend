@@ -30,18 +30,7 @@ const createEmailTransporter = () => {
 const sendOTPEmail = async (email, otp, teacherName) => {
   // For development, log OTP to console if email is not configured
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || 
-      process.env.EMAIL_USER === 'your-email@gmail.com') {
-    console.log(`
-=================================
-🔐 PASSWORD RESET OTP
-=================================
-Email: ${email}
-Name: ${teacherName}
-OTP: ${otp}
-Expires: 10 minutes
-=================================
-    `);
-    return; // Skip sending actual email in development
+      process.env.EMAIL_USER === 'your-email@gmail.com') {return; // Skip sending actual email in development
   }
 
   const transporter = createEmailTransporter();

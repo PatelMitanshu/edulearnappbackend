@@ -2,24 +2,7 @@ const { validationResult } = require('express-validator');
 const Student = require('../models/Student');
 const Standard = require('../models/Standard');
 const Division = require('../models/Division');
-const cloudinary = require('cloudinary').v2;
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-// Helper function to upload to Cloudinary
-const uploadToCloudinary = (buffer, options) => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(options, (error, result) => {
-      if (error) reject(error);
-      else resolve(result);
-    }).end(buffer);
-  });
-};
+const supabaseStorageService = require('../services/supabaseStorageService');
 
 const studentsController = {
   // Get all students
@@ -239,9 +222,6 @@ const studentsController = {
   // Update student
   updateStudent: async (req, res) => {
     try {
-      console.log('Update student request body:', req.body);
-      console.log('Update student params:', req.params);
-      
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         console.log('Validation errors:', errors.array());
@@ -379,32 +359,28 @@ const studentsController = {
         return res.status(404).json({ message: 'Student not found' });
       }
 
-      // Upload to Cloudinary
-      const uploadOptions = {
-        resource_type: 'image',
-        folder: 'education-app/profile-pictures',
-        public_id: `student-${studentId}-${Date.now()}`,
-        transformation: [
-          { width: 300, height: 300, crop: 'fill', gravity: 'face' },
-          { quality: 'auto' }
-        ]
-      };
-
-      const cloudinaryResult = await uploadToCloudinary(req.file.buffer, uploadOptions);
-
-      // Delete old profile picture from Cloudinary if it exists
+      // Delete old profile picture from Supabase Storage if it exists
       if (student.profilePicture && student.profilePicture.publicId) {
         try {
-          await cloudinary.uploader.destroy(student.profilePicture.publicId);
+          await supabaseStorageService.deleteFile(student.profilePicture.publicId);
         } catch (deleteError) {
-          console.warn('Failed to delete old profile picture:', deleteError);
+          console.warn('Failed to delete old profile picture from Supabase:', deleteError);
         }
       }
 
+      // Upload to Supabase Storage
+      const uploadResult = await supabaseStorageService.uploadProfilePicture(
+        req.file.buffer,
+        studentId,
+        'student',
+        req.file.originalname,
+        req.file.mimetype
+      );
+
       // Update student with new profile picture
       student.profilePicture = {
-        url: cloudinaryResult.secure_url,
-        publicId: cloudinaryResult.public_id
+        url: uploadResult.url,
+        publicId: uploadResult.path
       };
 
       await student.save();

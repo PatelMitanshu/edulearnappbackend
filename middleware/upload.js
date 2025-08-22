@@ -64,12 +64,26 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit per file
+    fileSize: 60 * 1024 * 1024, // 60MB limit per file (some devices slightly overshoot)
     fieldSize: 10 * 1024 * 1024, // 10MB limit for non-file fields
     files: 10, // Maximum 10 files
     fields: 20 // Maximum 20 fields
   },
   fileFilter: fileFilter
 });
+
+// Wrap to provide nicer error messages from multer
+upload.singleWithErrors = (fieldName) => (req, res, next) => {
+  const handler = upload.single(fieldName);
+  handler(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, message: 'File too large. Max 60MB.' });
+      }
+      return res.status(400).json({ success: false, message: err.message || 'Upload error' });
+    }
+    next();
+  });
+};
 
 module.exports = upload;

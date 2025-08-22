@@ -53,18 +53,13 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error) {
-      console.log(`Attempt ${attempt} failed:`, error.message);
-      
-      // Check if it's a 503 Service Unavailable error or overloaded
+    } catch (error) {// Check if it's a 503 Service Unavailable error or overloaded
       if (error.message.includes('503') || 
           error.message.includes('overloaded') || 
           error.message.includes('Service Unavailable') ||
           error.message.includes('temporarily unavailable')) {
         if (attempt < maxRetries) {
-          const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
-          console.log(`AI service overloaded. Retrying in ${Math.round(delay)}ms... (attempt ${attempt}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
       }
@@ -166,11 +161,7 @@ router.post('/generate', auth, upload.single('image'), async (req, res) => {
     };
 
     let generatedText;
-    try {
-      console.log(`Generating MCQ with ${questionCount} questions for standard ${standardId}...`);
-      generatedText = await retryWithBackoff(generateWithRetry, 3, 2000);
-      console.log('MCQ generation successful');
-    } catch (retryError) {
+    try {generatedText = await retryWithBackoff(generateWithRetry, 3, 2000);} catch (retryError) {
       console.error('All retry attempts failed:', retryError);
       
       // Check if it's a service unavailable error

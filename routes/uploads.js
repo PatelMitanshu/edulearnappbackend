@@ -62,6 +62,32 @@ const handleValidationErrors = (req, res, next) => {
 // Upload a file for a student
 router.post('/', authMiddleware, uploadMiddleware.single('file'), uploadValidation, handleValidationErrors, uploadsController.uploadFile);
 
+// Create upload record (for Supabase uploads)
+router.post('/create-record', authMiddleware, [
+  body('title')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Title must be between 1 and 100 characters'),
+  body('student')
+    .isMongoId()
+    .withMessage('Valid student ID is required'),
+  body('type')
+    .isIn(['video', 'document', 'image'])
+    .withMessage('Type must be video, document, or image'),
+  body('file.url')
+    .isURL()
+    .withMessage('Valid file URL is required'),
+  body('description')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters'),
+  body('subject')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('Subject cannot exceed 50 characters')
+], handleValidationErrors, uploadsController.createUploadRecord);
+
 // Get all uploads for a student
 router.get('/student/:studentId', authMiddleware, uploadsController.getStudentUploads);
 

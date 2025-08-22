@@ -14,20 +14,14 @@ try {
 // Get all divisions for a specific standard
 const getDivisionsByStandard = async (req, res) => {
   try {
-    const { standardId } = req.params;
-    
-    console.log(`Fetching divisions for standard ${standardId} by teacher ${req.teacher._id}`);
-    
-    // Verify the standard exists and belongs to this teacher
+    const { standardId } = req.params;// Verify the standard exists and belongs to this teacher
     const standard = await Standard.findOne({ 
       _id: standardId, 
       createdBy: req.teacher._id,
       isActive: true
     });
     
-    if (!standard) {
-      console.log(`Standard ${standardId} not found or doesn't belong to teacher ${req.teacher._id}`);
-      // Return empty divisions instead of error to handle gracefully
+    if (!standard) {// Return empty divisions instead of error to handle gracefully
       return res.json({ divisions: [] });
     }
 
@@ -37,11 +31,7 @@ const getDivisionsByStandard = async (req, res) => {
     })
       .populate('standard', 'name')
       .populate('createdBy', 'name email')
-      .sort({ name: 1 });
-
-    console.log(`Found ${divisions.length} divisions for standard ${standardId}`);
-
-    // Add student counts to each division
+      .sort({ name: 1 });// Add student counts to each division
     const divisionsWithCounts = await Promise.all(
       divisions.map(async (division) => {
         const studentCount = await Student.countDocuments({ 
@@ -133,10 +123,7 @@ const createDivision = async (req, res) => {
       });
     }
 
-    const { name, description, standardId } = req.body;
-    console.log(`Creating division for standard ${standardId} by teacher ${req.teacher._id}`);
-
-    // Verify the standard exists and belongs to this teacher
+    const { name, description, standardId } = req.body;// Verify the standard exists and belongs to this teacher
     const standard = await Standard.findOne({ 
       _id: standardId, 
       createdBy: req.teacher._id,

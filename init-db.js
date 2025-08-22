@@ -5,10 +5,7 @@ require('dotenv').config();
 
 const initializeDatabase = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/education_app');
-    console.log('Connected to MongoDB');
-
-    // Create a default admin teacher if none exists
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/education_app');// Create a default admin teacher if none exists
     const existingTeacher = await Teacher.findOne({ role: 'admin' });
     let teacherId;
 
@@ -20,12 +17,8 @@ const initializeDatabase = async () => {
         role: 'admin'
       });
       await adminTeacher.save();
-      teacherId = adminTeacher._id;
-      console.log('Created admin teacher with email: admin@edulearn.com and password: Admin@123');
-    } else {
-      teacherId = existingTeacher._id;
-      console.log('Admin teacher already exists');
-    }
+      teacherId = adminTeacher._id;} else {
+      teacherId = existingTeacher._id;}
 
     // Create default standards if they don't exist
     const standardsData = [
@@ -53,20 +46,11 @@ const initializeDatabase = async () => {
           ...standardData,
           createdBy: teacherId
         });
-        await standard.save();
-        console.log(`Created standard: ${standardData.name}`);
-      } else {
-        console.log(`Standard ${standardData.name} already exists`);
-      }
-    }
-
-    console.log('Database initialization completed!');
-  } catch (error) {
+        await standard.save();} else {}
+    }} catch (error) {
     console.error('Error initializing database:', error);
   } finally {
-    await mongoose.connection.close();
-    console.log('Database connection closed');
-  }
+    await mongoose.connection.close();}
 };
 
 initializeDatabase();

@@ -1,13 +1,6 @@
 const Teacher = require('../models/Teacher');
 const bcrypt = require('bcryptjs');
-const cloudinary = require('cloudinary').v2;
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const supabaseStorageService = require('../services/supabaseStorageService');
 
 const profileController = {
   // Upload profile picture
@@ -20,27 +13,19 @@ const profileController = {
         });
       }
 
-      // Upload to Cloudinary
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            folder: 'teacher-profiles',
-            transformation: [
-              { width: 200, height: 200, crop: 'fill', gravity: 'face' },
-              { quality: 'auto' }
-            ]
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(req.file.buffer);
-      });
+      // Upload to Supabase Storage
+      const uploadResult = await supabaseStorageService.uploadProfilePicture(
+        req.file.buffer,
+        req.user.id,
+        'teacher',
+        req.file.originalname,
+        req.file.mimetype
+      );
 
       // Update teacher profile with new picture URL
       const teacher = await Teacher.findByIdAndUpdate(
         req.user.id,
-        { profilePicture: result.secure_url },
+        { profilePicture: uploadResult.url },
         { new: true, runValidators: true }
       ).select('-password');
 
@@ -55,7 +40,7 @@ const profileController = {
         success: true,
         message: 'Profile picture uploaded successfully',
         data: {
-          profilePicture: result.secure_url,
+          profilePicture: uploadResult.url,
           teacher: {
             id: teacher._id,
             name: teacher.name,
@@ -92,14 +77,18 @@ const profileController = {
         });
       }
 
-      // Delete from Cloudinary if exists
+      // Delete from Supabase Storage if exists
       if (teacher.profilePicture) {
         try {
-          // Extract public_id from URL
-          const publicId = teacher.profilePicture.split('/').pop().split('.')[0];
-          await cloudinary.uploader.destroy(`teacher-profiles/${publicId}`);
-        } catch (cloudinaryError) {
-          console.error('Error deleting from Cloudinary:', cloudinaryError);
+          // Extract the file path from the URL
+          const url = new URL(teacher.profilePicture);
+          const pathSegments = url.pathname.split('/');
+          // Remove the first empty segment and the bucket name segment
+          const filePath = pathSegments.slice(3).join('/');
+          
+          await supabaseStorageService.deleteFile(filePath);
+        } catch (deleteError) {
+          console.error('Error deleting from Supabase Storage:', deleteError);
           // Continue anyway as we still want to remove from database
         }
       }
@@ -420,18 +409,14 @@ const profileController = {
   // Update profile settings/preferences
   updateSettings: async (req, res) => {
     try {
-      console.log('Settings update request body:', req.body);
       const { settings } = req.body;
       
       if (!settings || typeof settings !== 'object') {
-        console.log('Invalid settings object:', settings);
         return res.status(400).json({
           success: false,
           message: 'Settings object is required'
         });
       }
-
-      console.log('Updating settings for user:', req.user.id);
       console.log('Settings data:', JSON.stringify(settings, null, 2));
 
       const updatedTeacher = await Teacher.findByIdAndUpdate(
