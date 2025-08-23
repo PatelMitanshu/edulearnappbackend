@@ -417,7 +417,6 @@ const profileController = {
           message: 'Settings object is required'
         });
       }
-      console.log('Settings data:', JSON.stringify(settings, null, 2));
 
       const updatedTeacher = await Teacher.findByIdAndUpdate(
         req.user.id,

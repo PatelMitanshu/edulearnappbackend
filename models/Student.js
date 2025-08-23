@@ -23,6 +23,11 @@ const studentSchema = new mongoose.Schema({
     trim: true,
     maxlength: [20, 'Roll number cannot exceed 20 characters']
   },
+  uid: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'UID cannot exceed 50 characters']
+  },
   dateOfBirth: {
     type: Date
   },
@@ -56,7 +61,10 @@ const studentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create compound index for unique roll number per standard per teacher
-studentSchema.index({ rollNumber: 1, standard: 1, createdBy: 1 }, { unique: true, sparse: true });
+// Create compound index for unique roll number per division per teacher
+studentSchema.index({ rollNumber: 1, division: 1, createdBy: 1 }, { unique: true, sparse: true });
+
+// Create compound index for unique UID per division per teacher
+studentSchema.index({ uid: 1, division: 1, createdBy: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Student', studentSchema);

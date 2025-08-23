@@ -39,6 +39,11 @@ router.post('/', authMiddleware, [
     .trim()
     .isLength({ max: 20 })
     .withMessage('Roll number cannot exceed 20 characters'),
+  body('uid')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('UID cannot exceed 50 characters'),
   body('dateOfBirth')
     .optional()
     .isISO8601()
@@ -83,6 +88,11 @@ router.put('/:id', authMiddleware, [
     .trim()
     .isLength({ max: 20 })
     .withMessage('Roll number cannot exceed 20 characters'),
+  body('uid')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('UID cannot exceed 50 characters'),
   body('dateOfBirth')
     .optional()
     .isISO8601()

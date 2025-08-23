@@ -154,7 +154,7 @@ const studentsController = {
         });
       }
 
-      const { name, rollNumber, dateOfBirth, gender, address, parentContact, standardId, divisionId } = req.body;
+      const { name, rollNumber, uid, dateOfBirth, gender, address, parentContact, standardId, divisionId } = req.body;
 
       // Verify standard exists and belongs to teacher
       const standard = await Standard.findOne({ 
@@ -191,9 +191,23 @@ const studentsController = {
         }
       }
 
+      // Check for duplicate UID in the same division
+      if (uid) {
+        const existingStudentWithUID = await Student.findOne({
+          uid,
+          division: divisionId,
+          isActive: true
+        });
+        
+        if (existingStudentWithUID) {
+          return res.status(400).json({ message: 'UID already exists in this division' });
+        }
+      }
+
       const student = new Student({
         name,
         rollNumber,
+        uid,
         dateOfBirth,
         gender,
         address,
@@ -224,14 +238,13 @@ const studentsController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        console.log('Validation errors:', errors.array());
         return res.status(400).json({ 
           message: 'Validation failed', 
           errors: errors.array() 
         });
       }
 
-      const { name, rollNumber, dateOfBirth, gender, address, parentContact, standardId, divisionId } = req.body;
+      const { name, rollNumber, uid, dateOfBirth, gender, address, parentContact, standardId, divisionId } = req.body;
 
       // Find student and verify ownership
       const student = await Student.findOne({
@@ -284,10 +297,25 @@ const studentsController = {
         }
       }
 
+      // Check for duplicate UID if changing it
+      if (uid && uid !== student.uid) {
+        const existingStudentWithUID = await Student.findOne({
+          uid,
+          division: divisionId || student.division,
+          isActive: true,
+          _id: { $ne: student._id }
+        });
+        
+        if (existingStudentWithUID) {
+          return res.status(400).json({ message: 'UID already exists in this division' });
+        }
+      }
+
       // Update student
       Object.assign(student, {
         name: name || student.name,
         rollNumber: rollNumber || student.rollNumber,
+        uid: uid !== undefined ? uid : student.uid,
         dateOfBirth: dateOfBirth || student.dateOfBirth,
         gender: gender || student.gender,
         address: address || student.address,
