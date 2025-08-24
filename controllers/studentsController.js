@@ -187,7 +187,14 @@ const studentsController = {
         });
         
         if (existingStudent) {
-          return res.status(400).json({ message: 'Roll number already exists in this division' });
+          return res.status(400).json({ 
+            message: `Student with roll number '${rollNumber}' already exists in this division`,
+            error: 'DUPLICATE_ROLL_NUMBER',
+            existingStudent: {
+              name: existingStudent.name,
+              rollNumber: existingStudent.rollNumber
+            }
+          });
         }
       }
 
@@ -200,7 +207,14 @@ const studentsController = {
         });
         
         if (existingStudentWithUID) {
-          return res.status(400).json({ message: 'UID already exists in this division' });
+          return res.status(400).json({ 
+            message: `Student with UID '${uid}' already exists in this division`,
+            error: 'DUPLICATE_UID',
+            existingStudent: {
+              name: existingStudentWithUID.name,
+              uid: existingStudentWithUID.uid
+            }
+          });
         }
       }
 
