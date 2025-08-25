@@ -100,21 +100,26 @@ function selfPing() {
     console.log(`[Keep-Alive] Pinging ${url}/health at ${new Date().toISOString()}`);
     
     const request = protocol.get(`${url}/health`, (response) => {
+      console.log(`[Keep-Alive] Self-ping successful, status: ${response.statusCode}`);
     });
     
     request.on('error', (error) => {
+      console.log(`[Keep-Alive] Self-ping failed: ${error.message}`);
     });
     
     request.setTimeout(30000, () => {
+      console.log('[Keep-Alive] Self-ping timeout');
       request.destroy();
     });
     
   } catch (error) {
+    console.log(`[Keep-Alive] Error during self-ping: ${error.message}`);
   }
 }
 
 // Start the keep-alive mechanism only in production
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
+  console.log('[Keep-Alive] Starting keep-alive mechanism - pinging every 10 minutes');
   setInterval(selfPing, KEEP_ALIVE_INTERVAL);
   
   // Initial ping after 1 minute to ensure the server is ready
@@ -138,6 +143,10 @@ app.use('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces
 app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
+  console.log(`Network access: http://192.168.1.3:${PORT}`);
+  console.log(`Hotspot access: http://192.168.137.1:${PORT}`);
 });
 
 module.exports = app;

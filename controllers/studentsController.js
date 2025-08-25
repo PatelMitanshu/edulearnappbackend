@@ -146,8 +146,21 @@ const studentsController = {
   // Create new student
   createStudent: async (req, res) => {
     try {
+      // Diagnostic: log incoming payload for debugging import failures
+      try {
+        console.log('Create student payload:', JSON.stringify(req.body));
+      } catch (e) {
+        console.log('Create student payload (could not stringify)');
+      }
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        // Log validation errors for easier debugging
+        try {
+          console.error('Create student validation errors:', JSON.stringify(errors.array()));
+        } catch (e) {
+          console.error('Create student validation errors (could not stringify)');
+        }
         return res.status(400).json({ 
           message: 'Validation failed', 
           errors: errors.array() 

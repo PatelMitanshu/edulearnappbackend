@@ -46,6 +46,24 @@ router.post('/', authMiddleware, [
     .withMessage('UID cannot exceed 50 characters'),
   body('dateOfBirth')
     .optional()
+    .customSanitizer((value) => {
+      if (!value) return value;
+      try {
+        const s = value.toString().trim();
+        // Accept DD-MM-YYYY or DD/MM/YYYY and convert to YYYY-MM-DD
+        const dmy = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/;
+        const m = s.match(dmy);
+        if (m) {
+          const day = m[1].padStart(2, '0');
+          const month = m[2].padStart(2, '0');
+          const year = m[3];
+          return `${year}-${month}-${day}`;
+        }
+        return s;
+      } catch (e) {
+        return value;
+      }
+    })
     .isISO8601()
     .withMessage('Date of birth must be a valid date'),
   body('gender')
@@ -95,6 +113,23 @@ router.put('/:id', authMiddleware, [
     .withMessage('UID cannot exceed 50 characters'),
   body('dateOfBirth')
     .optional()
+    .customSanitizer((value) => {
+      if (!value) return value;
+      try {
+        const s = value.toString().trim();
+        const dmy = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/;
+        const m = s.match(dmy);
+        if (m) {
+          const day = m[1].padStart(2, '0');
+          const month = m[2].padStart(2, '0');
+          const year = m[3];
+          return `${year}-${month}-${day}`;
+        }
+        return s;
+      } catch (e) {
+        return value;
+      }
+    })
     .isISO8601()
     .withMessage('Date of birth must be a valid date'),
   body('gender')
