@@ -62,6 +62,7 @@ const studentSchema = new mongoose.Schema({
 });
 
 // Create compound index for unique roll number per division per teacher
+// This allows same roll number in different divisions of the same standard
 studentSchema.index({ rollNumber: 1, division: 1, createdBy: 1 }, { unique: true, sparse: true });
 
 // Create compound index for unique UID per division per teacher

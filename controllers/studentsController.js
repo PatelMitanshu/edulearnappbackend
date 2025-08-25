@@ -192,6 +192,7 @@ const studentsController = {
       }
 
       // Check for duplicate roll number in the same division
+      // Note: Same roll number is allowed in different divisions of the same standard
       if (rollNumber) {
         const existingStudent = await Student.findOne({
           rollNumber,
@@ -311,6 +312,7 @@ const studentsController = {
       }
 
       // Check for duplicate roll number if changing it
+      // Note: Same roll number is allowed in different divisions of the same standard
       if (rollNumber && rollNumber !== student.rollNumber) {
         const existingStudent = await Student.findOne({
           rollNumber,
