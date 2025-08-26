@@ -81,26 +81,47 @@ app.use('/api/lesson-plans', require('./routes/lessonPlans'));
 
 // Health Check
 app.get('/health', (req, res) => {
-  res.status(200).json({ message: 'Server is running', timestamp: new Date().toISOString() });
+  const healthInfo = {
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+    memory: process.memoryUsage(),
+    pid: process.pid
+  };
+  
+  console.log(`[Health Check] Health endpoint accessed at ${healthInfo.timestamp}`);
+  res.status(200).json(healthInfo);
 });
 
 // Keep-alive functionality to prevent Render server from sleeping
 const http = require('http');
 const https = require('https');
 
-const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+const KEEP_ALIVE_INTERVAL = 1* 60 * 1000; // 10 minutes in milliseconds
 
 function selfPing() {
   try {
-    // Get the current URL of the deployed app or use localhost for development
-    const url = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || `http://localhost:${PORT}`;
+    // Use the correct production URL or fallback to localhost for development
+    const url = process.env.RENDER_EXTERNAL_URL || 
+                process.env.APP_URL || 
+                'https://edulearnappbackend-6etb.onrender.com' || 
+                `http://localhost:${PORT}`;
+    
     const isHttps = url.startsWith('https://');
     const protocol = isHttps ? https : http;
     
     console.log(`[Keep-Alive] Pinging ${url}/health at ${new Date().toISOString()}`);
     
     const request = protocol.get(`${url}/health`, (response) => {
-      console.log(`[Keep-Alive] Self-ping successful, status: ${response.statusCode}`);
+      let data = '';
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+      response.on('end', () => {
+        console.log(`[Keep-Alive] Self-ping successful, status: ${response.statusCode}, response: ${data}`);
+      });
     });
     
     request.on('error', (error) => {
@@ -117,13 +138,24 @@ function selfPing() {
   }
 }
 
-// Start the keep-alive mechanism only in production
-if (process.env.NODE_ENV === 'production' || process.env.ENABLE_KEEP_ALIVE === 'true') {
-  console.log('[Keep-Alive] Starting keep-alive mechanism - pinging every 10 minutes');
+// Start the keep-alive mechanism for production and Render.com deployment
+const isProduction = process.env.NODE_ENV === 'production' || 
+                    process.env.ENABLE_KEEP_ALIVE === 'true' ||
+                    process.env.RENDER_EXTERNAL_URL ||
+                    true; // Temporarily enable for testing
+
+if (isProduction) {
+  console.log('[Keep-Alive] Starting keep-alive mechanism - pinging every 8 minutes');
+  console.log('[Keep-Alive] Environment: NODE_ENV=' + process.env.NODE_ENV);
+  console.log('[Keep-Alive] Will ping health endpoint to prevent server sleep');
+  
+  // Set up the interval
   setInterval(selfPing, KEEP_ALIVE_INTERVAL);
   
-  // Initial ping after 1 minute to ensure the server is ready
-  setTimeout(selfPing, 60000);
+  // Initial ping after 10 seconds for testing (normally 1 minute)
+  setTimeout(selfPing, 10000);
+} else {
+  console.log('[Keep-Alive] Keep-alive disabled for development environment');
 }
 
 // Error Handling Middleware
