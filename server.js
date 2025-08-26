@@ -99,7 +99,7 @@ app.get('/health', (req, res) => {
 const http = require('http');
 const https = require('https');
 
-const KEEP_ALIVE_INTERVAL = 1* 60 * 1000; // 10 minutes in milliseconds
+const KEEP_ALIVE_INTERVAL = 10* 60 * 1000; // 10 minutes in milliseconds
 
 function selfPing() {
   try {
