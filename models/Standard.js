@@ -4,7 +4,8 @@ const standardSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Standard name is required'],
-    enum: ['6th Standard', '7th Standard', '8th Standard']
+    trim: true,
+    maxlength: [50, 'Standard name cannot exceed 50 characters']
   },
   description: {
     type: String,
