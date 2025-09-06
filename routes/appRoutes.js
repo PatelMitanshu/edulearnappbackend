@@ -3,7 +3,7 @@ const router = express.Router();
 
 // App version configuration
 const APP_VERSION_CONFIG = {
-  latestVersion: '1.5.0', // Update this when you release a new version
+  latestVersion: '1.6.0', // Update this when you release a new version
   downloadUrl: 'https://github.com/PatelMitanshu/edufrontendapp/releases/latest', // Or your download URL
   forceUpdate: false, // Set to true if you want to force users to update
   message: 'A new version of the Education App is available with automatic update notifications and improved performance!',
