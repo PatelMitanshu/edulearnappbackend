@@ -78,6 +78,7 @@ app.use('/api/uploads', require('./routes/uploads'));
 app.use('/api/mcq', require('./routes/mcq'));
 app.use('/api/mcq-student', require('./routes/mcqStudent'));
 app.use('/api/lesson-plans', require('./routes/lessonPlans'));
+app.use('/api/app', require('./routes/appRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -99,7 +100,7 @@ app.get('/health', (req, res) => {
 const http = require('http');
 const https = require('https');
 
-const KEEP_ALIVE_INTERVAL = 10* 60 * 1000; // 10 minutes in milliseconds
+const KEEP_ALIVE_INTERVAL = 7* 60 * 1000; // 10 minutes in milliseconds
 
 function selfPing() {
   try {
@@ -141,8 +142,7 @@ function selfPing() {
 // Start the keep-alive mechanism for production and Render.com deployment
 const isProduction = process.env.NODE_ENV === 'production' || 
                     process.env.ENABLE_KEEP_ALIVE === 'true' ||
-                    process.env.RENDER_EXTERNAL_URL ||
-                    true; // Temporarily enable for testing
+                    process.env.RENDER_EXTERNAL_URL; // Only for actual production/Render deployment
 
 if (isProduction) {
   console.log('[Keep-Alive] Starting keep-alive mechanism - pinging every 8 minutes');
