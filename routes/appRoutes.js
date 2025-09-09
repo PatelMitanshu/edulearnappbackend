@@ -7,7 +7,7 @@ const APP_VERSION_CONFIG = {
   downloadUrl: 'https://github.com/PatelMitanshu/edufrontend/releases/latest', // Or your download URL
   forceUpdate: false, // Set to true if you want to force users to update
   message: 'A new version of the Education App is available with automatic update notifications and improved performance!',
-  minimumSupportedVersion: '1.0.0', // Versions below this will be forced to update
+  minimumSupportedVersion: '1.7.0', // Versions below this will be forced to update
 };
 
 // GET /api/app/version - Get current app version info
