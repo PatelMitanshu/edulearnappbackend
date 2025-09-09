@@ -40,7 +40,7 @@ router.get('/version', async (req, res) => {
     console.error('Error getting version info:', error);
     res.status(500).json({ 
       error: 'Failed to get version information',
-      latestVersion: '1.0.0', // Fallback version
+      latestVersion: '1.7.0', // Fallback version
       forceUpdate: false,
       message: 'Unable to check for updates at this time.'
     });
