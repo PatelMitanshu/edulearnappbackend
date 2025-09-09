@@ -3,11 +3,11 @@ const router = express.Router();
 
 // App version configuration
 const APP_VERSION_CONFIG = {
-  latestVersion: '1.7.0', // Update this when you release a new version
+  latestVersion: '1.8.0', // Update this when you release a new version
   downloadUrl: 'https://github.com/PatelMitanshu/edufrontend/releases/latest', // Or your download URL
   forceUpdate: false, // Set to true if you want to force users to update
   message: 'A new version of the Education App is available with automatic update notifications and improved performance!',
-  minimumSupportedVersion: '1.7.0', // Versions below this will be forced to update
+  minimumSupportedVersion: '1.8.0', // Versions below this will be forced to update
 };
 
 // GET /api/app/version - Get current app version info
@@ -40,7 +40,7 @@ router.get('/version', async (req, res) => {
     console.error('Error getting version info:', error);
     res.status(500).json({ 
       error: 'Failed to get version information',
-      latestVersion: '1.7.0', // Fallback version
+      latestVersion: '1.8.0', // Fallback version
       forceUpdate: false,
       message: 'Unable to check for updates at this time.'
     });
