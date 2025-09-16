@@ -57,6 +57,17 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files from uploads directory (for fallback document storage)
 app.use('/uploads', express.static('public/uploads'));
 
+// Serve APK files for app updates
+app.use('/downloads', express.static('public', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.apk')) {
+      res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+      res.setHeader('Content-Disposition', 'attachment');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }
+}));
+
 // Logging
 app.use(morgan('combined'));
 

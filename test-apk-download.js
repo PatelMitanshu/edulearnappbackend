@@ -52,7 +52,7 @@ async function testApkDownload(url, outputPath) {
 }
 
 // Test the current download URL
-const testUrl = 'https://github.com/PatelMitanshu/edufrontend/releases/download/v2.1.0/edulearn-v2.1.0.apk';
+const testUrl = 'http://192.168.1.6:3000/downloads/edulearn-v2.1.0.apk';
 const testOutput = './test-download.apk';
 
 console.log('🧪 Testing APK download URL...');
