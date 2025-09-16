@@ -3,11 +3,11 @@ const router = express.Router();
 
 // App version configuration
 const APP_VERSION_CONFIG = {
-  latestVersion: '2.1.0', // Update this when you release a new version
-  downloadUrl: 'https://github.com/PatelMitanshu/edufrontend/releases/download/v2.1.0/edulearn-v2.1.0.apk', // Direct APK download URL
+  latestVersion: '2.2.0', // Update this when you release a new version
+  downloadUrl: 'https://github.com/PatelMitanshu/edulearnappbackend/blob/main/edulearn-v2.1.0.apk', // Direct APK download URL
   forceUpdate: false, // Set to true if you want to force users to update
   message: 'New version with enhanced update system, better permission handling, and improved installation guidance!',
-  minimumSupportedVersion: '2.1.0', // Versions below this will be forced to update
+  minimumSupportedVersion: '2.2.0', // Versions below this will be forced to update
 };
 
 // GET /api/app/version - Get current app version info
@@ -40,7 +40,7 @@ router.get('/version', async (req, res) => {
     console.error('Error getting version info:', error);
     res.status(500).json({ 
       error: 'Failed to get version information',
-      latestVersion: '2.1.0', // Fallback version
+      latestVersion: '2.2.0', // Fallback version
       forceUpdate: false,
       message: 'Unable to check for updates at this time.'
     });
