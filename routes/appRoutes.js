@@ -4,9 +4,9 @@ const router = express.Router();
 // App version configuration
 const APP_VERSION_CONFIG = {
   latestVersion: '2.1.0', // Update this when you release a new version
-  downloadUrl: 'https://github.com/PatelMitanshu/edufrontend/releases/latest/app-release.apk', // Direct APK download URL
+  downloadUrl: 'https://github.com/PatelMitanshu/edufrontend/releases/download/v2.1.0/edulearn-v2.1.0.apk', // Direct APK download URL
   forceUpdate: false, // Set to true if you want to force users to update
-  message: 'A new version of the Education App is available with automatic update notifications and improved performance!',
+  message: 'New version with enhanced update system, better permission handling, and improved installation guidance!',
   minimumSupportedVersion: '2.1.0', // Versions below this will be forced to update
 };
 
